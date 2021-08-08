@@ -1,0 +1,600 @@
+Primeiro fizemos o Core/Router.php, que seria a routerização da nossa URL e da nossa aplicação, 
+consequentemente.
+
+"
+
+  class Router{
+    
+  private $controller;
+  private $method;
+  private $params = array();
+
+  /*Sempre que a nossa classe Router for instanciada, irá implementar
+   toda a nossa função construtora.*/
+
+  public function __construct(){
+
+    //Retorno da URL explodida em SERVER["SERVER_NAME"] e SERVER["REQUEST_URI"]
+
+    $url = $this->parseUrl();
+
+    //url[1] = recebe o controller
+    //url[2] = recebe o método de determinado controller
+    //url[3] || + = recebe os parâmetros
+
+    /*Verificamos se o arquivo existe dentro da pasta Controllers, se ele existir, 
+    então nós o passamos o valor da URL na posição 1 ($url[1]) para $this->controllers 
+    (nossa variável global de escopo privado). Após isso, damos um unset na variável 
+    pois não a utilizaremos mais, fazemos isso para limpar a informação da memória do servidor, 
+    o que é MUITO importante.
+      Se não, se a $url[1] estiver vazia, então passamos a ela um valor, no caso, o nosso 
+    controller padrão.
+      Se não estiver vazia mas mesmo assim o arquivo não existir, então é porque o usuário 
+    digitou algo que não existe (em si o controller), então passamos para a página 
+    de erro not found (404).*/
+
+    if(file_exists('../App/Controllers/'.$url[1].'.php')){
+      $this->controller = $url[1];
+      unset($url[1]);
+    }elseif(empty($url[1])){
+      $this->controller = 'TaskListController';
+    }else{
+      $this->controller = 'Erro404';
+    }
+
+    /*Após isso, fazemos uma requisição única no arquivo/classe: pois agora a 
+    variável já tem ou possui algum valor específico.
+    Depois tornamos a variável controller em um objeto, intanciando-o*/
+
+    require_once '../App/Controllers/'.$this->controller.'.php';
+    $this->controller = new $this->controller;
+
+    /*Verificamos se a $url[2] tem alguma coisa, se está setada. 
+    Caso retorne verdadeiro, então varificamos se determinado método
+    existe dentro de determinado controller, que fora instanciado acima.
+    Se ambos os ifs forem verdadeiros, então passamos o valor da $url[2] 
+    para o method, e depois damos um unset($url[2]) para limpar a 
+    memória do servidor e também para outro propósito (mais para frente será 
+    falado). Damos unset também na posição [0] da $url.
+    No último else, siginifica que a $url[2] não está setada (provavelmente 
+    vazia/nula), então passamos um valor padrão para o method, que no caso é o index.
+    
+    */
+
+    if(isset($url[2])){
+      if(method_exists($this->controller, $url[2])){
+        $this->method = $url[2];
+        unset($url[2]);
+        unset($url[0]);
+      }else{
+
+      }
+    }else{
+      $this->method = 'index';
+    }
+    /*A $params recebe a $url e todos os valores dela (aqui não serão passados o 
+    controller, o method e nem a SERVER_NAME, pois haviamos dado unset nessas 
+    posições da $url), ou a $params recebe uma array vazia.
+      
+    */
+
+    $this->params = $url ? array_values($url) : [];
+
+    /*Por fim chamamos a função call_user_func_array(), que por sua vez, 
+    executa uma função criada ou nativa, e pode receber arrays também.
+    Passamos o primeiro argumento que é uma array, que tem duas posições 
+    (o controller e o método), o primeiro argumento deve ser a função e o 
+    segundo obrigatóriamente deve ser uma array, que no caso, é a variável 
+    params.
+    */
+
+
+    call_user_func_array([$this->controller, $this->method], $this->params);
+    
+  }
+
+  public function parseUrl(){
+
+    /*Retornamos a nossa url explodida em duas partes: no domínio da página 
+    (tasklisr.com.br) e na URI (controller e o método) dela (ex: taskListController/store). 
+    A '/' seria o tipo de divisor que usaremos para reconhecer cada parte da nossa URL, 
+    com os índices dela. 
+    */
+
+    return explode('/', $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI']);
+
+    
+  }
+}
+
+
+Após termos feito o Core/Router.php, instanciamos-o na Public/index.php 
+para testar ele
+Após isso, criamos a pasta Controllers e um arquivo dentro dele 
+(TaskListController.php).
+Onde também criamos uma função index.php e dentro dela demos um echo 
+qualquer para teste e funcionou.
+
+Após isso, criamos a Core/Controller.php, que no caso é a Controller PAI, 
+cuja será extendida/herdada por todos os controllers.
+Dentro desse controller PAI, fizemos: 
+
+Class Controller{
+
+  /*Criamos uma função model, cuja irá substituir a necessidade 
+  de instancimento dos models. Passamos uma variável com o nome model 
+  como parâmetro e depois damos um require_onde '../App/Models/'.$model.'.php' 
+  concatenando o nome do arquivo com o caminho e a extensão (.php) dele.
+  Por fim, retornamos um objeto de model. 
+  Ou seja, essa função faz uma requisição única do arquivo e por fim, retorna-a 
+  instanciada.   
+  
+  */
+
+  public function model($model){
+    require_once "../App/Models/".$model.".php";
+    return new $model;
+  }
+
+  /*Passamos para esta função dois parâmetros: $view e $dados = [].
+  Dentro dela apenas damos um require em ../App/Views/template.php
+  Usamos essa função após termos feito a instancia de model e termos 
+  pedido uma lista de linhas do banco, por exemplo. Passamos os $dados 
+  para a $view e depois requisitamos apenas uma vez o template, que 
+  é onde nós fazemos a renderização do header.php, content(view & dados) 
+  e do rodapé.
+
+
+   */
+
+  public function view($view, $dados = []){
+    require_once "../App/Views/template.php";
+  }
+}
+
+Após isso, criamos a Views/home.php e dentro dela deixamos a tasklist/estrutura dela.
+A renderização dos dados ainda não é possível pois ainda não temos o model e nem o controller.
+Começamos a criação pela parte mais "densa/baixa" da nossa aplicação, que no caso é o model.
+Mas para dar início a ele, temos que criar o arquivo de conexão e seguir o padrão singleton.
+Então dentro de Core criamos o arquivo Model.php, onde fazemos a conexão.
+
+Class Model{
+  private static $connection;
+
+  public static function getCon(){
+
+    /*Se a self::$connection não estiver setada (provavelmente 
+    vazia ou nula), damos a ela uma nova instância de PDO
+    junto aos dados necessários para conexão com o banco, que são:
+    o tipo de banco que estaremos utilizamos: mysql:
+    Qual host que estamos usando: localhost
+    Qual a porta que abriremos: 3306
+    Qual o nome do banco de dados: newTaskList
+    O usuário: root
+    A senha do banco: senhaDoBanco
+
+    Retornamos a instancia de PDO. Caso a variável já esteja setada, apenas retornará-a;*/
+    
+    if(!isset(self::$connection)){
+      self::$connection = new \PDO("mysql:host=localhost;port=3306;dbname=newTaskList", 'root', 'senhaDoBanco');
+    }
+
+    return self::$connection;
+  }
+
+}
+
+Após termos feito o arquivo de conexão no padrão singleton, criamos o Model/Tasklist.php
+
+Class Model{
+  public $id;
+  public $descricao;
+
+  public function listarTodos(){
+    $sql = "SELECT * from tbl_task";
+
+    /*stmt = Statement = Demosntração*/
+
+    $stmt  Model::getCon()->prepare($sql);
+    $stmt->execute();
+
+    /*Se a quantidade de linhas retornadas for maior que zero 
+    (se estiver retornando algo do banco). Então passamos para
+    a $resultado a $stmt com uma busca de tudo de PDO transformado 
+    em um array de objetos (para podermos acessar seus valores mais 
+    facilmente depois). Temos dois retornos diferentes (um dentro do 
+    if e outro dentro do else, o do else retorna um array vazio).*/
+
+    if($stmt->rowCount() > 0){
+      $resultado = $stmt->fetchAll(\PDO::FETCH_OBJ);
+      return $resultado;
+    }else{
+      return [];
+    }
+  }
+}
+
+Agora, para passarmos isso para a view, vamos em 
+Controllers/TaskListController.php e fazemos:
+
+/*Herdamos a classe Controller (que é a Controller PAI),
+onde também, agora, temos acesso livre aos seus métodos.
+  Acessamos o método model, onde passamos o nome da mesma 
+  e já é feito a instância dela.
+    Após isso, passamos para a $dados a $model acessando o 
+    método listarTodos, que nos retorna uma lista de todas 
+    as tuplas do banco.
+      Por fim, acessamos o método view, que por sua vez recebe 
+      o nome da view e os dados que serão renderizados dentro 
+      dela. Lembrando que eles foram parrados como uma array 
+      de objetos.
+*/
+
+class TaskListController extends Controller{
+  $model = model("TaskList");
+  $dados = $model->listarTodos();
+  $this->view('home', $dados);
+}
+
+Agora vamos na template.php, onde fazemos o seguinte:
+
+<body>
+  <main>
+    <?php
+
+    /*Essa $view justamente é aquela passada na função view do 
+    Controller PAI, AQUI nós damos o require_once*/
+      require_once '../App/Views/'.$view.'.php';
+    ?>
+  <main>
+</body>
+
+Após ser renderizada a home.php, vamos dentro da mesma (Views/home.php) que 
+renderizará, por sua vez, os dados.
+
+/*
+  Damos um foreach para acessar cada um dos elementos desse array,
+  que por sua vez, agora são objetos. Acessamos-os através do elemento 
+  $dado de $dados ($dados por sua vez é a mesma variável do método view() 
+  que é do controller PAI).
+  Acessamos apenas o objeto descricao, o id não se torna necessário por agora.
+*/
+
+<div class="tarefas">
+  <?php
+      foreach($dados as $dado){
+  ?>
+  <div class="tarefa">
+    <?=$dado->descricao?>
+      <form id="form-editar" method="GET" action="editarTarefa.php">  
+          <button>&#128393;</button>
+      </form>
+      <form method="POST" action="">
+        <input type="hidden" name="acao" value="deletar"/>  
+        <button>&#128465;</button>
+      </form>
+  </div>
+      <?php
+        }
+      ?>
+</div>
+
+/*Após termos feito apenas a listagem, passamos agora 
+para a inserção de dados através (sempre agora) do 
+method POST e da função store() de TaskListController. 
+Então começamos pela camada mais baixa do nosso app (model);*/
+
+Class TaskList{
+  public function listarTodos(){...}
+
+  /*Passamos o script sql. 
+    Preparamos o sql
+    Passamos o valor que queremos para o bindValue()
+    E se a execução retornar true, então nós fazemos com que a 
+    $this->id passe a ser o último id inserido no banco, 
+    fazemos isso através da conexão.
+    Retornamos os dados ($this).
+    Caso não seja executado com sucesso, retornamos um array vazio.
+  */
+
+  public function inserirDescricao(){
+    $sql = "INSERT INTO tbl_task (descricao) value (:descricao);
+    $this->descricao = $_POST["descricao"];
+    $stmt = Model::getCon()->prepare($sql);
+    $stmt->bindValue(":descricao", $this->descricao);
+    if($stmt->execute()){
+      $this->id = Model::getCon->lastInsertId();
+      return $this;
+    }else{
+      return [];
+    }
+  }
+}
+
+//Após isso vamos para o controller: Controllers/TaskListController.php.
+  /*Instanciamos o model.
+    Executamos a função inserirDescricao();
+    E damos um header(), voltando para a página inicial.
+  */
+
+Class TaskListController extends Controller{
+  $modelTaskList = $this->model("TaskList");
+  $modelTaskList->inserirDescricao();
+  header("location: /")
+
+}
+
+/*Por fim, atualizamos a Views/home.php:
+Deixamos o método padrão, POST. Mudamos onde a ação será realizada
+/TaskListController/store", e deixamos o name da input como "descricao".*/
+
+
+ <form method="POST" action="/TaskListController/store"> 
+    <div class="input-group">
+      <label for="tarefa">Descrição da tarefa</label>
+      <input type="text" name="descricao" id="tarefa" placeholder="Digite a tarefa" required />
+    </div>
+    <button>Adicionar</button>
+  </form>
+
+//Dessa forma já é atualizado/inserido a nossa descrição no banco.
+
+/*Após isso, fazemos a deleção de determinada descrição.
+Começamos, como sempre, pela parte mais baixa da nossa 
+aplicação (Model/TaskList.php)*/
+
+Class TaskList(){
+  public $id;
+  public $descricao;
+
+  public function listarTodos(){...}
+
+  public function inserirDescricao(){...}
+
+  public function deletar(){
+    $sql = "DELETE FROM tbl_task WHERE id = :id";
+    $stmt = Model::getCon()->prepare($sql);
+    $stmt->bindValue(":id", $this->id);
+    $stmt->execute();
+    return $this->id;
+  }
+}
+
+//Após isso, vamos até o controller:
+
+class TaskListController extends Controller{
+  public function index(){...}
+
+  public function store(){...}
+
+  public function delete($id){
+    $modelTaskList = $this->model("TaskList");
+    $modelTaskList->id = $id;
+    $modelTaskList->deletar();
+    header("location: /");
+  }
+}
+
+//Fazemos, logo após, algumas alterações na Views/home.php, 
+mais especificamente na parte onde temos o botão de deleção:
+
+<div class="tarefas">
+  <?php
+    foreach($dados as $dado){
+  ?>
+    <div class="tarefa">
+
+    /*Passamos aqui não só o "caminho" do controller e do method, mas passamos 
+    também o id para a deleção. Lembrando que primeiro passará para o controller 
+    para depois ir para o model e executar o sql. O controller é o intermediador 
+    entre o model e a view
+    */
+
+      <form method="POST" action="/TaskListController/delete/<?=$dado->id?>">  
+        <button>&#128465;</button>
+      </form>
+    </div>
+ <?php
+    }
+  ?>
+
+Assim, a deleção já é realizada.
+
+Agora fazemos a parte de edição.
+É a parte mais complexa da aplicação, por isso mais detalhada:
+Começamos primeiramente com a parte mais densa do programa: model.
+Vamos em Models/TaskList.php e criamos a seguinte função (buscarPorId):
+
+Criamos-a pela seguinte necessidade: 
+Precisamos do id para ser usado na função edit de TaskListController. 
+Essa função edit serve para renderizarmos os dados, ou mais especficamente, 
+para utilizarmos-os. Mais para frente entenderemos o porquê disso. 
+
+<?php
+use App\Core\Model;
+
+class TaskList{
+  public $id;
+  public $descricao;
+
+  public function listarTodos(){...}
+
+  public function inserirDescricao(){...}
+
+  public function deletar(){...}
+
+/*Passamos o script para a $sql, que é um script de procura de 
+id que retorna toda a tupla.
+Preparamos a $sql.
+Mudamos os valores através do bindValue.
+Verificamos se a execução retorna realmente true, se sim, então
+passamos para a $resultado, que recebe um $stmt->fetch(PDO::FETCH_OBJ), 
+que retorna apenas uma linha de objetos.
+Se a $resultado estiver vazia, então a mesma é falsa, então retornamos falso.
+Se ainda a execução for verdadeira, então a variável global $this->id recebe 
+o objeto id de resultado ($resultado->id), o mesmo é feito com a descrição.
+Por fim, retornamos todos as variáveis (no caso, as duas).
+Se stmr->execute() for false, então retornamos false no else.
+
+*/
+
+  public function buscarPorId($id){
+    $sql = "select * from tbl_task where id = :id;";
+    $stmt = Model::getCon()->prepare($sql);
+    $stmt->bindValue(':id', $id);
+    if($stmt->execute()){
+      $resultado = $stmt->fetch(PDO::FETCH_OBJ);
+    
+      if(!$resultado){
+        return false;
+      }
+      $this->id = $resultado->id;
+      $this->descricao = $resultado->descricao;
+      return $this;
+    }else{
+      return false;
+    }
+  }
+}
+
+//Após feito o model, vamos para o Controllers/TaskListController
+//e criamos a seguinte função (edit()):
+/*Ela recebe um parâmetro, mais espefificamente o id. Por quê? Para 
+passarmos-o para a Model, já que a mesma não tem esse valor. 
+A edit recebe esse valor graças a função view() que além de renderizar a 
+própria view, passa os dados para ela, e, através de um click (feito com 
+uma função JavaScript), podemos passar o id para a edit().
+Por fim renderizamos a view e passamos os dados para a mesma (que no caso 
+é apenas uma tupla correspondente ao id).   
+
+*/
+
+class TaskListController extends Controller{
+  public function index(){...}
+
+  public function store(){...}
+
+  public function delete($id){...}
+
+  public function edit($id){
+    $modelTaskList = $this->model("TaskList");
+    $dados =  $modelTaskList->buscarPorId($id);
+    $this->view('update', $dados);
+  }
+}
+
+Função JavaScript (Public/JS/script.js):
+
+const $ = element => document.querySelector(element);
+const button = $('#editar');
+const editarDescricao = (categoriaId) =>{
+  window.location = `/taskListController/edit/${categoriaId}`
+}
+
+Na view home.php, chamamos/executamos a função dessa forma:
+/*Através do onclick executamos a função e graças ao objeto 
+$dado->id podemos passar o id correspondente a tupla.
+Com isso, vamos para a página/view "update.php" e é onde 
+renderizamos os dados: no value da input passamos a 
+descrição que queremos editar.
+
+*/
+
+<div class="tarefas">
+  <?php
+      foreach($dados as $dado){
+  ?>
+    <div class="tarefa">
+      <?=$dado->descricao?>
+      <span>   
+        <button id="editar" onclick="editarDescricao(<?=$dado->id?>)">&#128393;</button>
+      </span>
+    </div>
+  <?php
+    }
+  ?>
+  <script src="./JS/script.js"></script>
+</div>
+
+
+Após termos chego até aqui, voltamos outra vez a parte 
+mais baixa da aplicação: a model. Criamos a função atualizar()
+
+
+<?php
+use App\Core\Model;
+
+class TaskList{
+  public $id;
+  public $descricao;
+
+  public function listarTodos(){...}
+
+  public function inserirDescricao(){...}
+
+  public function deletar(){...}
+
+  public function buscarPorId($id){...}
+
+  /*Passamos o script sql de atualização
+    Preparamos o sql
+    Pegamos da view o name da input que usaremos para atualizar 
+    determiado campo do banco.
+    Passamos o id que queremos "caçar" no banco de dados.
+    Passamos o valor que queremos atualizar, que caso é a $this->descrição 
+    que recebeu o value da input com o name "descricao" através do method $_POST.
+    retornamos a execução do processo (true ou false);
+  
+  */
+
+  public function atualizar(){
+    $sql = "UPDATE tbl_task set descricao = :descricao where id = :id;";
+    $stmt = Model::getCon()->prepare($sql);
+    $this->descricao = $_POST["descricaoUp"];
+    $stmt->bindValue(':id', $this->id);
+    $stmt->bindValue(':descricao', $this->descricao);
+    return $stmt->execute();
+  }
+}
+
+Após a camada Model, vamos para a camada intermediadora (controller). 
+Na TaskListController criamos a seguinte função (update):
+
+Nela nós instânciamos o Model
+Passamos o valor para o id de model, que no caso é usado para a busca do id no 
+banco, para então atualizar a descrição.
+Após isso, acessamos o método de model para realmente fazer a atualização de 
+determinado campo.
+Por fim retornamos à página inicial.
+
+class TaskListController extends Controller{
+  public function index(){...}
+
+  public function store(){...}
+
+  public function delete($id){...}
+
+  public function edit($id){...}
+
+  public function update($id){
+    $modelTaskList = $this->model("TaskList");
+    $modelTaskList->id = $id;
+    $modelTaskList->atualizar();
+    header("location: /");
+  }
+}
+
+Agora vamos para a parte mais alta, em si, a do usuário (View) e implementamos na Views/update:
+
+<div class="content">
+  <h1>Lista de Tarefas</h1>
+  <form method="POST" action="/TaskListController/update/<?=$dados->id?>"> 
+    <div class="input-group">
+      <label for="tarefa">Descrição da tarefa</label>
+      <input type="text" name="descricaoUp" id="tarefa" value="<?=$dados->descricao?>" required />
+    </div>
+    <button>Adicionar</button>
+  </form>
+</div>
+
+Agora, todas as funcionalides estão implementadas. O CRUD completo com MVC em PHP.
