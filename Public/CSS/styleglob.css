@@ -2,6 +2,32 @@
   box-sizing: border-box;
 }
 
+header{
+  width: 100%;
+  margin-bottom: 20px;
+  padding-right: 30px;
+  padding-top: 2vh;
+  height: 8vh;
+}
+
+#login{
+  padding: 3px;
+  float: right;
+  font-size: 20px;
+  background-color: rgb(7, 206, 7);
+  cursor: pointer;
+  color: white;
+}
+
+#logout{
+  padding: 3px;
+  float: right;
+  font-size: 20px;
+  background-color: red;
+  cursor: pointer;
+  color: white;
+}
+
 body {
   font-family: sans-serif;
   display: flex;
@@ -9,6 +35,8 @@ body {
   background-color: rgba(118, 94, 94, 0.877);
   justify-content: center;
   flex-direction: column;
+  margin: 0;
+  padding: 0;
 }
 
 .content {

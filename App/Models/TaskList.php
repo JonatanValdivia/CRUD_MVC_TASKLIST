@@ -58,7 +58,6 @@ class TaskList{
   public function atualizacao(){
     $sql = "UPDATE tbl_task set descricao = :descricao where id = :id";
     $stmt = Model::getCon()->prepare($sql);
-    $this->descricao = $_POST["descricaoUp"];
     $stmt->bindValue(":descricao", $this->descricao);
     $stmt->bindValue(":id", $this->id);
     if($stmt->execute()){

@@ -30,6 +30,7 @@ class TaskListController extends Controller{
 
   public function update($id){
     $modelTaskList = $this->model("TaskList");
+    $modelTaskList->descricao = $_POST["descricaoUp"];
     $modelTaskList->id = $id;
     $modelTaskList->atualizacao();
     header("location: /");
