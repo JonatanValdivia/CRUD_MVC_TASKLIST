@@ -1,4 +1,5 @@
 <header>
+  <div onclick="cadastreSe()" id="cadastrar">Cadastre-se</div>
   <?php
     if(!isset($_SESSION['id'])){
   ?>
@@ -28,8 +29,7 @@
         <div class="tarefa">
         <?=$dado->descricao?>
           <?php
-            if(isset($_SESSION['id'])){
-            
+            if(isset($_SESSION['id'])){ 
           ?>
           <span>   
             <button id="edicao" onclick="abrirPaginaUpdate(<?=$dado->id?>)">&#128393;</button>

@@ -1,8 +1,6 @@
 Primeiro fizemos o Core/Router.php, que seria a routerização da nossa URL e da nossa aplicação, 
 consequentemente.
 
-"
-
   class Router{
     
   private $controller;
@@ -298,7 +296,7 @@ Class TaskList{
   */
 
   public function inserirDescricao(){
-    $sql = "INSERT INTO tbl_task (descricao) value (:descricao);
+    $sql = "INSERT INTO tbl_task (descricao) value (:descricao)";
     $this->descricao = $_POST["descricao"];
     $stmt = Model::getCon()->prepare($sql);
     $stmt->bindValue(":descricao", $this->descricao);
@@ -598,3 +596,208 @@ Agora vamos para a parte mais alta, em si, a do usuário (View) e implementamos 
 </div>
 
 Agora, todas as funcionalides estão implementadas. O CRUD completo com MVC em PHP.
+
+///
+
+Com o crud realizado, fizemos uma implementação de login
+Então criamos primeiramente a Model de cadastro, para fazer
+o login depois:
+Começamos pela parte mais baixa da nossa aplicação (model):
+
+Class Cadastro{
+  public $id;
+  public $nome;
+  public $senha;
+
+  public function cadastrar(){
+    $sql = "INSERT INTO tbl_admin (nome, senha) VALUES (:nome, :senha);
+    $stmt = Model::getCon()->prepare($sql);
+    $stmt->bindValue(:nome, $this->nome);
+    $stmt->bindValue(:senha, $this->senha);
+    if($stmt->execute){
+      $this->id = Model::getCon()->lastInsertId();
+    }
+    return $this;
+  }
+}
+
+Após esta classe no model, vamos para o controller: 
+O método index servirá apenas para renderizar a view
+
+class CadastreSeController extends Controller{
+  public function index(){
+    $this->view('cadastrar');
+  }
+
+  public funtion store(){
+    $modelCadastro = $this->model('Cadastro');
+
+    //Se os campos: senha e confirmar senha forem iguais 
+    //(os valores) então executará o restante do código
+
+    if($_POST['senhaCadastro'] == $_POST['senhaConf]){ 
+
+      //Os campos que substituem o bindValue() no model
+      //Fazemos-os aqui pois a view e a model não podem ter nenhum contato
+
+      $modelCadastro->nome = $_POST['nomeCadastro]; 
+      $modelCadastro->senha = $_POST['senhaCadastro];
+      $modelCadastro->cadastrar();
+      return $this;
+    }else{
+      $_SESSION['mensagemErro'] = 'Senhas não correspondem!';
+    }
+  }
+}
+
+/*
+Após isso, vamos para a crição da view, que é 
+renderizada através do click no botão "cadastre-se" 
+que está na view home.php, mais especificamente no 
+header:
+*/
+
+<div onclick="cadastreSe()" id="cadastrar">Cadastre-se</div>
+
+//Função no JavaScript:
+
+const cadastreSe = () =>{
+  window.location = 'CadastreSeController/index';
+}
+
+//Após isso, vamos para a view cadastrar.php:
+
+ <h1>Faça seu cadastro</h1>
+    <div id="divCadastrar">
+      <form method="POST" action="/CadastreSeController/store">  
+        <input type="text" placeholder="Nome" name="nomeCadastro" require>
+        <input type="text" name="senhaCadastro" placeholder="Senha">
+        <input type="text" name="senhaConf" placeholder="Confirmar senha">
+        <button>Cadastrar</button>
+      </form>
+    </div>
+
+//Feito a view, já está pronto a implementação de cadastro.
+
+
+APós o cadastro, fazemos a implementação do login, 
+seguindo a seguinte analogia: apenas logados têm acesso ao a 
+deleção e atualização.
+Começamos então, pala parte mais baixa da aplicação: (model)
+
+Class Login {
+  public function login(){
+    $sql = "SELECT id from tbl_admin where nome = :nome and senha = :senha";
+    $stmt = Model::getCon()-prepare($sql);
+    $stmt->bindValue(":nome", $this->nome);
+    $stmt->bindValue(":senha", $this->senha);
+    if ($stmt->execute()){
+      $resultado = $stmt->fetch(PDO::FETCH_OBJ);
+      $this->id = $resultado->id;
+      return $this;
+    }
+  }
+}
+
+APós o model, vamos para o controller:
+
+Class LoginController extends Controller{
+  public function index(){
+    $this->view('Login');
+  }
+
+  public function logar(){
+    $modelLogin = $this->model('Login');
+    $modelLogin->nome = $_POST['nome'];
+    $modelLogin->senha = $_POST['senha];
+    $modelLogin->login();
+    $_SESSION['id'] = $modelLogin->id;
+    header('location: /');
+  }
+
+}
+
+Após isso, vamos para a view novamente, mais 
+especficamente a home.php, onde temos a div 
+que tem um evento ouvinte de click e que 
+executerá uma window.location:
+
+<div onclick='abrirTelaLogin()' id="login">Login</div>
+
+No JavaScript: 
+
+const abrirTelaLogin = () =>{
+  window.location = '/LoginController/index';
+}
+
+/*Após isso, com esta função, já podemos renderizar 
+a view login.php
+Na mesma, temos os seguintes campos para logar: */
+
+<h1>Faça seu login</h1>
+<div id="divLogar">
+  <form method="POST" action="/LoginController/logar/">  
+    <input type="text" placeholder="Nome" name="nome" require>
+    <input type="text" name="senha" placeholder="Senha">
+    <button>Entrar</button>
+  </form>
+</div>
+
+//Se determiandos valores inseridos forem verdadeiros
+então retornará um id, então, como haviamos passado 
+esse id para uma $_SESSION['id'], utilizaremos-a num 
+if para nos mostrar determinados botões:
+
+<?php
+  if(isset($_SESSION['id'])){ 
+?>
+  <span>   
+    <button id="edicao" onclick="abrirPaginaUpdate(<?=$dado->id?>)">&#128393;</button>
+  </span>
+  <form method="POST" action="/TaskListController/delete/<?=$dado->id?>">   
+    <button>&#128465;</button>
+  </form>
+<?php
+  }
+?>
+
+Após isso, precisamos apenas fazer o "deslogar", 
+que é quando se sai de determinado login.
+Então fazemos na view home.php:
+
+<?php
+    if(!isset($_SESSION['id'])){
+  ?>
+  <div onclick='abrirTelaLogin()' id="login">Login</div>
+  <?php
+    } else{
+  ?>
+  <div id="logout" onclick="logout()">Logout</div>
+  <?php
+    }
+  ?>
+
+  A função logout, com evento de click, faz: 
+
+const logout = () =>{
+  window.location = `/LoginController/deslogar`
+}
+
+E redireciona para esta função (deslogar):
+
+Class LoginController extends Controller{
+  public function index (){...}
+
+  public function logar(){...}
+
+  public function deslogar(){
+    session_destroy();
+    header('location: /');
+  }
+}
+
+
+
+
+
+

@@ -12,7 +12,7 @@
       margin-top: 40px;
     }
 
-    #divLogar{
+    form{
       display: flex;
       flex-direction: column;
     }

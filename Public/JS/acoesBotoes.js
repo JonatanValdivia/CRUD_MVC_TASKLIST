@@ -9,3 +9,7 @@ const abrirTelaLogin = () =>{
 const logout = () =>{
   window.location = `/LoginController/deslogar`
 }
+
+const cadastreSe = () =>{
+  window.location = `/CadastreSeController/index`;
+}

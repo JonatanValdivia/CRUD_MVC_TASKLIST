@@ -6,7 +6,7 @@ Class Login {
   public $id;
   public $nome;
   public $senha;
-
+  
   public function login(){
     $sql = "select id from tbl_admin where nome = :nome and senha = :senha;";
     $stmt = Model::getCon()->prepare($sql);

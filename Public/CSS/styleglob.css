@@ -5,22 +5,37 @@
 header{
   width: 100%;
   margin-bottom: 20px;
-  padding-right: 30px;
+  padding: 0 30px;
   padding-top: 2vh;
   height: 8vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#cadastrar{
+  padding: 3px;
+  width: max-content;
+  background-color: rgb(15, 131, 177);
+  font-size: 20px;
+  color: white;
+  cursor: pointer;
+  border-radius: 5px;
 }
 
 #login{
   padding: 3px;
-  float: right;
   font-size: 20px;
+  justify-content: flex-end;
   background-color: rgb(7, 206, 7);
   cursor: pointer;
   color: white;
+  border-radius: 5px;
 }
 
 #logout{
   padding: 3px;
+  border-radius: 5px;
   float: right;
   font-size: 20px;
   background-color: red;
