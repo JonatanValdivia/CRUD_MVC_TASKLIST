@@ -796,6 +796,8 @@ Class LoginController extends Controller{
   }
 }
 
+//Por fim, a sessão com o id é destruída.
+
 
 
 
